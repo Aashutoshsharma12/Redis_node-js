@@ -9,6 +9,7 @@ const channel = 'news';
 const message = 'New article published';
 // import redis from 'redis'
 // const redis = require('redis')
+
 const publisher = redis.createClient({ host: '127.0.0.1', port: 6379, auth_pass: "P@ssw0rd" });
 app.get('/', (req, res) => {
     res.send('Redis Publisher active at 3098')
@@ -201,26 +202,50 @@ app.get('/multi_search', async (req, res) => {
 app.post('/addList', (req, res) => {
     try {
         var list = req.body.listName
-        var value = req.body.value
+        var value1 = { "data": 'ss', "data2": "21" }
+        var value = { "data": 'ss1', "data2": "2" }
+        const value2 = JSON.stringify(value);
+        const value3 = JSON.stringify(value1);
+
         // For adding data to a list:
-        const data = publisher.rpush(list, 'item1', 'item2', 'item3');
+        const data = publisher.rpush(list, value3, value2);
         console.log({ data: data })
         res.json({ data: data })
     } catch (err) {
         console.log(err);
     }
 })
+app.post('/updateList', (req, res) => {
+    try {
+        var list = req.body.listName
+        var index = 2
+        var updateValue = JSON.stringify({ "data": 'ss12', "data2": "21" })
+        publisher.lset(list, index, updateValue, (err, reply) => {
+            if (err) {
+                console.log(err);
+            } else {
+                res.json({ data: reply })
+            }
+        })
+    } catch (err) {
+        console.log(err)
+    }
+});
 //get  list data
 app.post('/getList', (req, res) => {
     try {
+        var array = []
         //get list
         publisher.lrange(req.body.listName, 0, -1, (error, response) => {
             if (error) {
                 console.error(error);
                 return;
             }
-            console.log('List elements:', response);
-            res.json({ data: response })
+            console.log('List elements:', (response));
+            response.map((data) => {
+                array.push(JSON.parse(data))
+            })
+            res.json({ data: array })
         });
     } catch (err) {
         console.log(err);
@@ -351,6 +376,9 @@ app.post('/allHash', (req, res) => {
 
 publisher.on('error', (error) => {
     console.error('Redis Error:', error);
+});
+publisher.on('connected', (error) => {
+    console.error('Redis connected:', error);
 });
 
 // Close the connection when done
